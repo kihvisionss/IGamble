@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mini Casino — Multiplayer Demo</title>
+<link href="https://cdn.jsdelivr.net/npm/modern-normalize/modern-normalize.min.css" rel="stylesheet">
+<style>
+  :root{--bg:#0b1220;--panel:#0f1b2b;--muted:#9fb0c6;--accent:#60e3a6;}
+  body{background:linear-gradient(180deg,#031124,#071a2a);color:#e8f3fb;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;margin:0;padding:16px;min-height:100vh;}
+  .app{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:320px 1fr;gap:16px;}
+  .panel{background:rgba(255,255,255,0.03);padding:12px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.4);}
+  h2{margin:6px 0 12px;font-size:16px;color:var(--accent)}
+  input,button,select,textarea{font:inherit;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:inherit}
+  .muted{color:var(--muted);font-size:13px}
+  #chat{height:280px;overflow:auto;padding:8px;background:rgba(0,0,0,0.15);border-radius:8px}
+  .message{padding:6px;margin-bottom:6px;border-radius:6px}
+  .username{font-weight:700;color:var(--accent);margin-right:8px}
+  .controls{display:flex;gap:8px;margin-top:8px}
+  .games{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .gamebox{padding:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))}
+  .log{height:120px;overflow:auto;padding:6px;background:rgba(0,0,0,0.12);border-radius:6px;font-size:13px}
+  .small{font-size:13px}
+  footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+  .inline{display:flex;gap:8px;align-items:center}
+  .trade-list{max-height:120px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <h2>Account</h2>
+    <div id="auth-area">
+      <div class="small muted">Sign in or create an account</div>
+      <input id="username" placeholder="username" />
+      <input id="password" type="password" placeholder="password" />
+      <div class="controls">
+        <button id="btn-signin">Sign in</button>
+        <button id="btn-signup">Create</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px" id="profile-area" hidden>
+      <div class="inline">
+        <div>
+          <div class="muted small">Player</div>
+          <div id="me-name" style="font-weight:800"></div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div class="muted small">Balance</div>
+          <div id="me-balance" style="font-weight:800">$0</div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <button id="btn-logout">Logout</button>
+      </div>
+
+      <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(255,255,255,0.03)">
+
+      <h2>Trade / Payments</h2>
+      <div class="small muted">Send coins by player name</div>
+      <input id="send-to" placeholder="recipient username" />
+      <input id="send-amount" placeholder="amount" />
+      <div class="controls">
+        <button id="btn-send">Send</button>
+      </div>
+
+      <div style="margin-top:8px">
+        <div class="muted small">Start trade with a player</div>
+        <input id="trade-with" placeholder="player username" />
+        <div class="controls">
+          <button id="btn-trade">Start Trade</button>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <div class="muted small">Incoming trades</div>
+        <div class="trade-list" id="incoming-trades"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <h2>Mini Casino — Global</h2>
+
+    <div style="display:flex;gap:12px">
+      <div style="flex:1">
+        <div id="chat"></div>
+        <div class="controls">
+          <input id="chat-input" placeholder="Type a message (commands: /giveaway <amt>, /enter )" style="flex:1" />
+          <button id="btn-chat">Send</button>
+        </div>
+      </div>
+
+      <div style="width:260px">
+        <div class="muted small">Online players</div>
+        <div id="players-list" style="height:200px;overflow:auto;padding:6px;background:rgba(0,0,0,0.06);border-radius:6px"></div>
+
+        <hr style="margin:8px 0;border:none;border-top:1px dashed rgba(255,255,255,0.03)">
+        <div class="muted small">Giveaways</div>
+        <div id="giveaways" class="log"></div>
+      </div>
+    </div>
+
+    <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(255,255,255,0.03)">
+
+    <div class="games">
+      <!-- BLACKJACK -->
+      <div class="gamebox">
+        <h2>Blackjack</h2>
+        <div class="muted small">Bet and play vs dealer</div>
+        <div style="margin-top:8px">
+          <input id="bj-bet" placeholder="bet amount" />
+          <div class="controls">
+            <button id="btn-bj-start">Start</button>
+            <button id="btn-bj-hit" disabled>Hit</button>
+            <button id="btn-bj-stand" disabled>Stand</button>
+          </div>
+          <div class="log" id="bj-log"></div>
+        </div>
+      </div>
+
+      <!-- POKER -->
+      <div class="gamebox">
+        <h2>5-Card Poker</h2>
+        <div class="muted small">Each player (including others) gets 5 cards; best hand wins</div>
+        <div style="margin-top:8px">
+          <input id="poker-bet" placeholder="bet amount" />
+          <div class="controls">
+            <button id="btn-poker-start">Start Round</button>
+          </div>
+          <div class="log" id="poker-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Tip: Use chat command <span class="muted">/giveaway 50</span> to start a giveaway. Others can enter with <span class="muted">/enter</span>.</footer>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+/* ---------- CONFIG ---------- */
+/* Change this to your deployed server URL when you host the server.
+   Example: const SERVER = "https://your-app.onrender.com";
+   While testing locally with server running on localhost:3000 use:
+   const SERVER = "http://localhost:3000";
+*/
+const SERVER = (location.hostname === "localhost" || location.hostname === "127.0.0.1") ? "http://localhost:3000" : (localStorage.getItem('server_url') || "https://REPLACE_WITH_YOUR_SERVER_URL");
+/* ---------------------------- */
+
+let socket;
+let me = null;
+const byId = id => document.getElementById(id);
+
+function connectSocket() {
+  socket = io(SERVER, { transports: ["websocket","polling"] });
+
+  socket.on("connect", () => {
+    console.log("socket connected", socket.id);
+    if (me && me.token) socket.emit("auth", { token: me.token });
+  });
+
+  socket.on("auth_ok", user => {
+    me = user;
+    persistMe();
+    renderProfile();
+  });
+
+  socket.on("state", s => {
+    renderPlayers(s.players || []);
+    renderGiveaways(s.giveaways || []);
+  });
+
+  socket.on("chat_message", m => {
+    pushChat(m);
+  });
+
+  socket.on("system", txt => {
+    pushChat({ system: true, text: txt });
+  });
+
+  socket.on("trade_request", t => {
+    showIncomingTrade(t);
+  });
+
+  socket.on("bj_update", data => {
+    byId("bj-log").innerText = data;
+  });
+
+  socket.on("poker_result", data => {
+    byId("poker-log").innerText = data;
+  });
+}
+
+/* ---------- AUTH ---------- */
+byId("btn-signup").onclick = async () => {
+  const u = byId("username").value.trim();
+  const p = byId("password").value;
+  if(!u||!p){alert("enter username and password");return;}
+  const res = await fetch(SERVER + "/signup", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ username:u, password:p })
+  });
+  const j = await res.json();
+  if(j.ok){ alert("account created, signed in"); me = j.user; persistMe(); renderProfile(); connectSocket(); }
+  else alert(j.error||"error");
+};
+
+byId("btn-signin").onclick = async () => {
+  const u = byId("username").value.trim();
+  const p = byId("password").value;
+  if(!u||!p){alert("enter username and password");return;}
+  const res = await fetch(SERVER + "/signin", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ username:u, password:p })
+  });
+  const j = await res.json();
+  if(j.ok){ me = j.user; persistMe(); renderProfile(); connectSocket(); }
+  else alert(j.error||"invalid login");
+};
+
+byId("btn-logout").onclick = () => { me=null; localStorage.removeItem("casino_me"); renderProfile(); if(socket) socket.disconnect(); socket=null; } 
+
+function persistMe(){ localStorage.setItem("casino_me", JSON.stringify(me)); }
+function loadMe(){ try{ const s=localStorage.getItem("casino_me"); if(s) me=JSON.parse(s); }catch(e){} }
+loadMe();
+
+function renderProfile(){
+  if(me){
+    byId("auth-area").hidden=true;
+    byId("profile-area").hidden=false;
+    byId("me-name").innerText = me.username;
+    byId("me-balance").innerText = "$" + (me.balance||0);
+  } else {
+    byId("auth-area").hidden=false;
+    byId("profile-area").hidden=true;
+  }
+}
+
+/* ---------- CHAT ---------- */
+byId("btn-chat").onclick = async ()=>{
+  const txt = byId("chat-input").value.trim();
+  if(!txt) return;
+  // handle local commands
+  if(txt.startsWith("/setserver ")){
+    const url=txt.slice(11).trim();
+    localStorage.setItem('server_url', url);
+    alert("Server URL saved. Refresh to connect: " + url);
+    return;
+  }
+  if(!socket || !socket.connected){ alert("Not connected to server. Sign in and ensure server URL is set."); return; }
+  socket.emit("chat", { text: txt });
+  byId("chat-input").value="";
+};
+
+function pushChat(m){
+  const c = byId("chat");
+  const el = document.createElement("div");
+  el.className="message";
+  if(m.system){
+    el.innerHTML = `<span class="muted small">${m.text}</span>`;
+  } else {
+    const who = `<span class="username">${m.from}</span>`;
+    const t = `<span class="muted small"> ${new Date(m.ts).toLocaleTimeString()}</span>`;
+    el.innerHTML = `${who}${t}<div>${m.text}</div>`;
+  }
+  c.appendChild(el);
+  c.scrollTop = c.scrollHeight;
+}
+
+/* ---------- PLAYERS / GIVEAWAYS ---------- */
+function renderPlayers(list){
+  const el = byId("players-list"); el.innerHTML="";
+  list.forEach(p=>{
+    const d = document.createElement("div");
+    d.innerHTML = `<strong>${p.username}</strong> <span class="muted small"> — $${p.balance}</span>`;
+    el.appendChild(d);
+  });
+  if(me) {
+    // update our balance
+    const found = list.find(x=>x.username===me.username);
+    if(found){ me.balance = found.balance; persistMe(); renderProfile(); }
+  }
+}
+
+function renderGiveaways(gs){
+  const el = byId("giveaways");
+  el.innerHTML = "";
+  gs.forEach(g=>{
+    const d = document.createElement("div");
+    d.innerHTML = `<strong>#${g.id}</strong> by <span class="muted small">${g.host}</span> — $${g.amount} — entrants: ${g.entrants.length}`;
+    el.appendChild(d);
+  });
+}
+
+/* ---------- TRADES ---------- */
+byId("btn-trade").onclick = ()=>{
+  const target = byId("trade-with").value.trim();
+  if(!target){alert("enter username");return;}
+  if(!socket || !me) { alert("sign in first"); return; }
+  socket.emit("trade_start", { to: target });
+};
+
+function showIncomingTrade(t){
+  // t: { from, id }
+  const area = byId("incoming-trades");
+  const row = document.createElement("div");
+  row.innerHTML = `<div class="small">${t.from}</div><div class="controls"><button>Accept</button><button>Decline</button></div>`;
+  const [accept,decl] = row.querySelectorAll("button");
+  accept.onclick = ()=> {
+    socket.emit("trade_accept", { id: t.id });
+    row.remove();
+  };
+  decl.onclick = ()=> { socket.emit("trade_decline", { id: t.id }); row.remove(); };
+  area.appendChild(row);
+}
+
+/* ---------- SEND COINS ---------- */
+byId("btn-send").onclick = ()=>{
+  const to = byId("send-to").value.trim();
+  const amt = Number(byId("send-amount").value);
+  if(!to||!amt) return alert("fill fields");
+  socket.emit("send_coins", { to, amount: amt });
+};
+
+/* ---------- BLACKJACK ---------- */
+byId("btn-bj-start").onclick = ()=>{
+  const bet = Number(byId("bj-bet").value);
+  if(!bet || bet<=0) return alert("enter bet");
+  if(!socket || !me) return alert("sign in");
+  socket.emit("bj_start", { bet });
+  byId("btn-bj-start").disabled = true;
+  byId("btn-bj-hit").disabled = false;
+  byId("btn-bj-stand").disabled = false;
+};
+
+byId("btn-bj-hit").onclick = ()=> socket.emit("bj_action", { action: "hit" });
+byId("btn-bj-stand").onclick = ()=> socket.emit("bj_action", { action: "stand" });
+
+/* ---------- POKER ---------- */
+byId("btn-poker-start").onclick = ()=>{
+  const bet = Number(byId("poker-bet").value);
+  if(!bet || bet<=0) return alert("enter bet");
+  if(!socket || !me) return alert("sign in");
+  socket.emit("poker_start", { bet });
+};
+
+/* ---------- INIT ---------- */
+renderProfile();
+if(me) connectSocket();
+</script>
+</body>
+</html>
